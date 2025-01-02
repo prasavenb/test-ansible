@@ -1,5 +1,6 @@
 - name: create 3 ec2 instances and 3 r53 records
   hosts: local
+  connection: local
   become: yes
   vars:
     subnet_id: "subnet-0734963ca90a3817f"
@@ -26,7 +27,7 @@
       vpc_subnet_id: "{{ subnet_id }}"
       instance_type: t2.micro
       name: "{{ item }}"
-      security_group:
+      security_group: "{{ sg_id }}"
     loop: "{{ instances }}"
     register: ec2_info
 
@@ -38,23 +39,24 @@
     amazon.aws.route53:
       state: present
       zone: "{{ zone }}"
-      records: "{{ item.item }}.{{ zone }}"
+      record: "{{ item.item }}.{{ zone }}"
       type: A
       ttl: 1
       value: "{{ item.instances[0].private_ip_address }}"
+      overwrite: true
     loop: "{{ ec2_info.results }}"
-    overwrite: true
+    
 
-  - name: create r53 records for private ip
+  - name: create r53 records for public ip
     amazon.aws.route53:
       state: present
       zone: "{{ zone }}"
-      records: "{{ zone }}"
+      record: "{{ zone }}"
       type: A
       ttl: 1
       value: "{{ item.instances[0].public_ip_address }}"
-    loop: "{{ ec2_info.results }}"
-    overwrite: true
+      overwrite: true
+    loop: "{{ ec2_info.results }}"    
     when: item.item == "frontend"
     
     
