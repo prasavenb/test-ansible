@@ -24,7 +24,7 @@
 - name: install dependencies
   ansible.builtin.command: npm install
   args:
-    chdir: "{{ app-location }}"
+    chdir: /app
 
 - name: install PyMySQl and cryptography
   ansible.builtin.pip:
