@@ -27,6 +27,7 @@
       vpc_subnet_id: "{{ subnet_id }}"
       instance_type: t2.micro
       name: "{{ item }}"
+      region: us-east-1
       security_group: "{{ sg_id }}"
     loop: "{{ instances }}"
     register: ec2_info
