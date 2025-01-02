@@ -1,0 +1,60 @@
+- name: create 3 ec2 instances and 3 r53 records
+  hosts: local
+  become: yes
+  vars:
+    subnet_id: "subnet-0734963ca90a3817f"
+    sg_id: "sg-04177bb468ff68998"
+    image_id: "ami-09c813fb71547fc4f"
+    instances:
+    - mysql
+    - backend
+    - frontend
+    zone: "vensa.online"
+
+  tasks:
+  - name: install boto3 and botocore
+    ansible.builtin.pip:
+      name:
+      - boto3
+      - botocore
+      state: present
+      executable: pip3.9
+      
+  - name: create ec2 instances
+    amazon.aws.ec2_instance:
+      image_id: "{{ image_id }}"
+      vpc_subnet_id: "{{ subnet_id }}"
+      instance_type: t2.micro
+      name: "{{ item }}"
+      security_group:
+    loop: "{{ instances }}"
+    register: ec2_info
+
+  - name: print ec2 info
+    ansible.builtin.debug:
+      msg: "{{ ec2_info }}"
+
+  - name: create r53 records for private ip
+    amazon.aws.route53:
+      state: present
+      zone: "{{ zone }}"
+      records: "{{ item.item }}.{{ zone }}"
+      type: A
+      ttl: 1
+      value: "{{ item.instances[0].private_ip_address }}"
+    loop: "{{ ec2_info.results }}"
+    overwrite: true
+
+  - name: create r53 records for private ip
+    amazon.aws.route53:
+      state: present
+      zone: "{{ zone }}"
+      records: "{{ zone }}"
+      type: A
+      ttl: 1
+      value: "{{ item.instances[0].public_ip_address }}"
+    loop: "{{ ec2_info.results }}"
+    overwrite: true
+    when: item.item == "frontend"
+    
+    
